@@ -22,6 +22,7 @@ print('===========================================================')
 print('Revisar https://utec.instructure.com/profile/settings      ')
 print('Entrar en Integraciones aprobadas -> +Nuevo Token de Acceso')
 access_token         = input('Ingresa tu token (ej: 4689~tPwx4RGnTyFV7XuochO1gWtFap9jPeW7KfsjBz6IDr0HIUUY6lQnstSsghMGMNwH): ')
+clean_all            = False # Clean all items from all modules 
 is_visible_videoconf = True # Add label for Videoconferencia
 is_visible_headers   = True # Add labels for Mayterial de Clase & Actividades
 is_visible_links     = True # Create links for Videoconferencia and Grabacion
@@ -36,6 +37,20 @@ path        = 'https://utec.instructure.com/api/v1/courses'
 def headers():
     token = 'Bearer '+access_token
     return {'Authorization': token}
+
+
+def delete_item(course, module, item):
+    url = url_items
+    url = url.replace('<course>', course)
+    url = url.replace('<module>', str(module)) 
+    return  delete(url, item)
+
+def delete(url, item):
+    url = url.replace('<path>', path) + "/" + str(item["id"])
+    r = requests.delete(url, headers = headers())
+    if r.status_code >= 400:
+        raise Exception("Unauthorized, Verify course and access_token")
+    return r.json()
 
 def get(url):
     url = url.replace('<path>', path)
@@ -97,7 +112,12 @@ def configure_week(module_id, date):
 
     date_start = date - timedelta(days=date.weekday())
     date_end = date_start + timedelta(days=6)
-    #items = get_items(course, module['id'])
+    
+    if clean_all:
+        items = get_items (course, module_id)
+        for item in items:
+            delete_item(course, module_id, item)
+
     if is_visible_videoconf:
         h = "Videoconferencia - Semana <start_mes>/<start_dia> - <end_mes>/<end_dia>"
         h = h.replace('<start_dia>',date_start.strftime("%d") )
